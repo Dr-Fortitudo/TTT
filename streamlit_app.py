@@ -2,16 +2,20 @@ import streamlit as st
 import pandas as pd
 import random
 
-# Define Timetable Parameters
+# Page Config
+st.set_page_config(page_title="Timetable Generator", page_icon="📅", layout="wide")
+
+# Constants
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 TIME_SLOTS = ["9-10 AM", "10-11 AM", "11-12 PM", "1-2 PM", "2-3 PM", "3-4 PM"]
 SEMESTERS = ["2nd Semester", "4th Semester", "6th Semester"]
 
-st.title("📅 Timetable Generator")
+# Title
+st.title("📅 Automated Timetable Generator")
 
-# Sidebar for Inputs
-st.sidebar.header("📌 Input Subjects & Faculty")
+st.sidebar.header("📌 Input Faculty & Subjects")
 
+# Input Section
 faculty_data = []
 num_faculty = st.sidebar.number_input("Number of Faculty", min_value=1, max_value=20, value=3)
 
@@ -28,17 +32,17 @@ for i in range(num_faculty):
                 "weekly_hours": weekly_hours
             })
 
-# Generate Timetable Button
+# Button to Generate Timetable
 if st.button("Generate Timetable"):
     if not faculty_data:
-        st.warning("Please enter at least one faculty with subjects.")
+        st.warning("⚠️ Please enter at least one faculty with subjects.")
     else:
-        st.success("Generating Timetable...")
+        st.success("✅ Generating Timetable...")
 
-        # Create timetable structure
+        # Timetable Storage
         timetable = {semester: {day: {slot: "" for slot in TIME_SLOTS} for day in DAYS} for semester in SEMESTERS}
 
-        # Faculty Schedule Dictionary
+        # Faculty Schedule Tracker
         faculty_schedule = {faculty["name"]: [] for faculty in faculty_data}
 
         for semester in SEMESTERS:
@@ -47,12 +51,12 @@ if st.button("Generate Timetable"):
             for faculty in faculty_data:
                 assigned_hours = 0
                 available_slots = [(day, slot) for day in DAYS for slot in TIME_SLOTS]
-                random.shuffle(available_slots)  # Shuffle to distribute lectures randomly
+                random.shuffle(available_slots)  # Shuffle for even distribution
                 
                 while assigned_hours < faculty["weekly_hours"] and available_slots:
                     day, slot = available_slots.pop()
                     
-                    # Check if the slot is free
+                    # Check if slot is free
                     if not timetable[semester][day][slot]:
                         subject = random.choice(faculty["subjects"])
                         timetable[semester][day][slot] = f"{subject} ({faculty['name']})"
@@ -66,12 +70,12 @@ if st.button("Generate Timetable"):
             df = pd.DataFrame.from_dict(timetable[semester], orient="index")
             st.dataframe(df)
 
-        # Allow CSV Download
+        # CSV Download
         def convert_df(df):
             return df.to_csv(index=True).encode('utf-8')
 
         st.download_button(
-            label="Download Timetable as CSV",
+            label="📥 Download Timetable as CSV",
             data=convert_df(df),
             file_name="timetable.csv",
             mime="text/csv",
