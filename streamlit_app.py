@@ -71,7 +71,16 @@ st.title("Automated Timetable Generator")
 
 # Sample file download link
 sample_file_path = "Subject Prof. credits.xlsx"
-st.download_button("Download Sample Excel File", sample_file_path)
+
+with open(sample_file_path, "rb") as file:
+    sample_bytes = file.read()
+
+st.download_button(
+    label="Download Sample Excel File",
+    data=sample_bytes,
+    file_name="Subject_Prof_credits.xlsx",  # Ensure it has the correct filename
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"  # MIME type for Excel
+)
 
 # File uploader
 uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
