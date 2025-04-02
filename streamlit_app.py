@@ -1,78 +1,47 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
-# Constants
+# Load the subject and faculty data
+@st.cache_data
+def load_data():
+    file_subjects = "Subject Prof. credits.xlsx"
+    df_subjects = pd.read_excel(file_subjects, sheet_name='Sheet1')
+    df_subjects_cleaned = df_subjects.iloc[1:, [0, 1, 2, 5, 6, 7]]
+    df_subjects_cleaned.columns = ['Subject_4EC', 'Credits_4EC', 'Prof_4EC', 'Subject_6ECA', 'Credits_6ECA', 'Prof_6ECA']
+    df_subjects_cleaned.dropna(how="all", inplace=True)
+    df_subjects_cleaned['Credits_4EC'] = pd.to_numeric(df_subjects_cleaned['Credits_4EC'], errors='coerce')
+    df_subjects_cleaned['Credits_6ECA'] = pd.to_numeric(df_subjects_cleaned['Credits_6ECA'], errors='coerce')
+    return df_subjects_cleaned
+
+# Define timetable structure
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-TIME_SLOTS = ["9-10 AM", "10-11 AM", "11-12 PM", "1-2 PM", "2-3 PM", "3-4 PM"]
-SEMESTERS = ["2nd Semester", "4th Semester", "6th Semester"]
+TIME_SLOTS = ["10:45-11:45", "11:45-12:45", "1:30-2:30", "2:30-3:30", "3:45-4:45", "4:45-5:45"]
 
-# Page Configuration
-st.set_page_config(page_title="Timetable Generator", page_icon="📅", layout="wide")
+# Generate timetable based on constraints
+def generate_timetable(subjects, credits):
+    timetable = pd.DataFrame(index=TIME_SLOTS, columns=DAYS)
+    subject_list = subjects.dropna().tolist()
+    credit_list = credits.dropna().astype(int).tolist()
+    weighted_subjects = sum([[subj] * cr for subj, cr in zip(subject_list, credit_list)], [])
+    np.random.shuffle(weighted_subjects)
+    idx = 0
+    for day in DAYS:
+        for slot in TIME_SLOTS:
+            if idx < len(weighted_subjects):
+                timetable.at[slot, day] = weighted_subjects[idx]
+                idx += 1
+    return timetable
 
-st.title("📅 Systematic Timetable Generator")
+# Streamlit UI
+st.title("Automated Timetable Generator")
+df_subjects = load_data()
+semester = st.selectbox("Select Semester", ["4th Semester", "6th Semester"])
 
-st.sidebar.header("📌 Input Faculty & Subjects")
+if semester == "4th Semester":
+    timetable = generate_timetable(df_subjects["Subject_4EC"], df_subjects["Credits_4EC"])
+elif semester == "6th Semester":
+    timetable = generate_timetable(df_subjects["Subject_6ECA"], df_subjects["Credits_6ECA"])
 
-# Collect Faculty Data
-faculty_data = []
-num_faculty = st.sidebar.number_input("Number of Faculty", min_value=1, max_value=10, value=3)
-
-for i in range(num_faculty):
-    with st.sidebar.expander(f"Faculty {i+1}"):
-        name = st.text_input(f"Faculty Name {i+1}", key=f"fac{i}")
-        subjects = st.text_area(f"Subjects (comma-separated) {i+1}", key=f"subj{i}")
-        weekly_hours = st.number_input(f"Weekly Hours {i+1}", min_value=1, max_value=10, value=3, key=f"hrs{i}")
-        
-        if name and subjects:
-            faculty_data.append({
-                "name": name,
-                "subjects": [s.strip() for s in subjects.split(",")],
-                "weekly_hours": weekly_hours
-            })
-
-# Button to Generate Timetable
-if st.button("Generate Timetable"):
-    if not faculty_data:
-        st.warning("⚠️ Please enter at least one faculty with subjects.")
-    else:
-        st.success("✅ Generating Timetable...")
-
-        # Initialize an empty timetable
-        timetable = {semester: {day: {slot: "" for slot in TIME_SLOTS} for day in DAYS} for semester in SEMESTERS}
-
-        # Faculty assignment tracking
-        faculty_schedule = {faculty["name"]: 0 for faculty in faculty_data}
-
-        # Systematic lecture allocation
-        for semester in SEMESTERS:
-            faculty_index = 0  # Start assigning from the first faculty
-            
-            for day in DAYS:
-                for slot in TIME_SLOTS:
-                    if faculty_index >= len(faculty_data):  # Reset index if all faculties are used
-                        faculty_index = 0
-
-                    faculty = faculty_data[faculty_index]
-                    if faculty_schedule[faculty["name"]] < faculty["weekly_hours"]:
-                        subject = faculty["subjects"][faculty_schedule[faculty["name"]] % len(faculty["subjects"])]
-                        timetable[semester][day][slot] = f"{subject} ({faculty['name']})"
-                        faculty_schedule[faculty["name"]] += 1
-
-                    faculty_index += 1
-
-        # Display Timetable
-        for semester in SEMESTERS:
-            st.subheader(f"📘 {semester} Timetable")
-            df = pd.DataFrame.from_dict(timetable[semester], orient="index")
-            st.dataframe(df)
-
-        # CSV Download
-        def convert_df(df):
-            return df.to_csv(index=True).encode('utf-8')
-
-        st.download_button(
-            label="📥 Download Timetable as CSV",
-            data=convert_df(df),
-            file_name="timetable.csv",
-            mime="text/csv",
-        )
+st.write("### Generated Timetable")
+st.dataframe(timetable)
