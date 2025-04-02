@@ -73,9 +73,12 @@ def generate_timetables(subjects_df):
 # Streamlit UI
 st.title("Automated Timetable Generator")
 
+# Sample file 
+sample_file_path = "Subject Prof. credits.xlsx"
+st.download_button("Download Sample Excel File", sample_file_path)
+
 # Upload file
 uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
-st.write("Download a sample file: [Sample Excel](Subject Prof. credits.xlsx)")
 
 # Select semester
 semester = st.selectbox("Select Semester", ["4th Semester", "6th Semester"])
