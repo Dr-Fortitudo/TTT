@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import random
 
 # Load the subject and faculty data
 @st.cache_data
@@ -23,6 +24,7 @@ def generate_timetables(subjects_df):
     timetable_6ECA = pd.DataFrame("", index=TIME_SLOTS, columns=DAYS)
     
     faculty_schedule = {}
+    subject_schedule = {}
     
     # Insert BREAK slots
     for day in DAYS:
@@ -31,21 +33,34 @@ def generate_timetables(subjects_df):
         timetable_6ECA.at["12:45-1:30 (BREAK)", day] = "BREAK"
         timetable_6ECA.at["3:30-3:45 (BREAK)", day] = "BREAK"
     
-    def assign_lecture(timetable, subject, professor):
+    def assign_lecture(timetable, subject, professor, is_lab=False):
+        random.shuffle(DAYS)
         for day in DAYS:
-            for slot in TIME_SLOTS:
-                if "BREAK" not in slot and timetable.at[slot, day] == "" and (professor not in faculty_schedule.get((day, slot), [])):
-                    timetable.at[slot, day] = subject
-                    faculty_schedule.setdefault((day, slot), []).append(professor)
-                    return
+            if subject_schedule.get((day, subject), 0) == 0:  # Ensure only one lecture per day
+                for i, slot in enumerate(TIME_SLOTS):
+                    if "BREAK" not in slot and timetable.at[slot, day] == "" and (professor not in faculty_schedule.get((day, slot), [])):
+                        if is_lab and i < len(TIME_SLOTS) - 1:
+                            timetable.at[slot, day] = f"{subject} ({professor}) [LAB]"
+                            timetable.at[TIME_SLOTS[i+1], day] = f"{subject} ({professor}) [LAB]"  # Merge Lab Blocks
+                            faculty_schedule.setdefault((day, slot), []).append(professor)
+                            faculty_schedule.setdefault((day, TIME_SLOTS[i+1]), []).append(professor)
+                            subject_schedule[(day, subject)] = 1
+                            return
+                        elif not is_lab:
+                            timetable.at[slot, day] = f"{subject} ({professor})"
+                            faculty_schedule.setdefault((day, slot), []).append(professor)
+                            subject_schedule[(day, subject)] = 1
+                            return
     
     for _, row in subjects_df.iterrows():
         if row['Subject_4EC']:
             for _ in range(int(row['Credits_4EC'])):
                 assign_lecture(timetable_4EC, row['Subject_4EC'], row['Prof_4EC'])
+            assign_lecture(timetable_4EC, row['Subject_4EC'], row['Prof_4EC'], is_lab=True)  # Add Lab
         if row['Subject_6ECA']:
             for _ in range(int(row['Credits_6ECA'])):
                 assign_lecture(timetable_6ECA, row['Subject_6ECA'], row['Prof_6ECA'])
+            assign_lecture(timetable_6ECA, row['Subject_6ECA'], row['Prof_6ECA'], is_lab=True)  # Add Lab
     
     return timetable_4EC, timetable_6ECA
 
