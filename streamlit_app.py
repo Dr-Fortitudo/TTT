@@ -37,9 +37,9 @@ def generate_timetables(subjects_df):
         random.shuffle(DAYS)
         for day in DAYS:
             if subject_schedule.get((day, subject), 0) == 0:  # Ensure only one lecture per day
-                for i, slot in enumerate(TIME_SLOTS):
+                for i, slot in enumerate(TIME_SLOTS[:-1]):  # Avoid assigning to break slots
                     if "BREAK" not in slot and timetable.at[slot, day] == "" and (professor not in faculty_schedule.get((day, slot), [])):
-                        if is_lab and i < len(TIME_SLOTS) - 1:
+                        if is_lab and "BREAK" not in TIME_SLOTS[i+1]:
                             timetable.at[slot, day] = f"{subject} ({professor}) [LAB]"
                             timetable.at[TIME_SLOTS[i+1], day] = f"{subject} ({professor}) [LAB]"  # Merge Lab Blocks
                             faculty_schedule.setdefault((day, slot), []).append(professor)
@@ -53,14 +53,19 @@ def generate_timetables(subjects_df):
                             return
     
     for _, row in subjects_df.iterrows():
+        professors_4EC = [p.strip() for p in str(row['Prof_4EC']).split(',')]
+        professors_6ECA = [p.strip() for p in str(row['Prof_6ECA']).split(',')]
+        
         if row['Subject_4EC']:
-            for _ in range(int(row['Credits_4EC'])):
-                assign_lecture(timetable_4EC, row['Subject_4EC'], row['Prof_4EC'])
-            assign_lecture(timetable_4EC, row['Subject_4EC'], row['Prof_4EC'], is_lab=True)  # Add Lab
+            for professor in professors_4EC:
+                for _ in range(int(row['Credits_4EC']) // len(professors_4EC)):
+                    assign_lecture(timetable_4EC, row['Subject_4EC'], professor)
+                assign_lecture(timetable_4EC, row['Subject_4EC'], professor, is_lab=True)  # Add Lab
         if row['Subject_6ECA']:
-            for _ in range(int(row['Credits_6ECA'])):
-                assign_lecture(timetable_6ECA, row['Subject_6ECA'], row['Prof_6ECA'])
-            assign_lecture(timetable_6ECA, row['Subject_6ECA'], row['Prof_6ECA'], is_lab=True)  # Add Lab
+            for professor in professors_6ECA:
+                for _ in range(int(row['Credits_6ECA']) // len(professors_6ECA)):
+                    assign_lecture(timetable_6ECA, row['Subject_6ECA'], professor)
+                assign_lecture(timetable_6ECA, row['Subject_6ECA'], professor, is_lab=True)  # Add Lab
     
     return timetable_4EC, timetable_6ECA
 
