@@ -13,7 +13,7 @@ def load_data():
     return df_subjects_cleaned
 
 # Define timetable structure
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 TIME_SLOTS = ["10:45-11:45", "11:45-12:45", "1:30-2:30", "2:30-3:30", "3:45-4:45", "4:45-5:45"]
 
 # Generate both timetables simultaneously to prevent faculty overlaps
