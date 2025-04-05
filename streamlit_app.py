@@ -126,21 +126,23 @@ if uploaded_file:
     }
     
     if st.button("Generate Timetables"):
-        timetables = generate_all_timetables(semesters_data)
-        
-        for sem, name in [('2', '2nd Semester'), ('4', '4th Semester'), ('6', '6th Semester')]:
-            st.write(f"### {name} Timetable")
-            display_df = timetables[sem].copy()
+    timetables = generate_all_timetables(semesters_data)
+    
+    for sem, name in [('2', '2nd Semester'), ('4', '4th Semester'), ('6', '6th Semester')]:
+        st.write(f"### {name} Timetable")
 
-            st.dataframe(
-                display_df.style.set_properties(**{
-                    'white-space': 'pre-wrap',
-                    'text-align': 'center',
-                    'min-width': '120px',
-                    'max-width': '150px'
-                }),
-                height=600
-            )
+        display_df = timetables[sem].copy()
+
+        st.dataframe(
+            display_df.style.set_properties(**{
+                'white-space': 'pre-wrap',
+                'text-align': 'center',
+                'min-width': '120px',
+                'max-width': '150px'
+            }),
+            height=600
+        )
+
 
             
             # Format display
