@@ -125,7 +125,7 @@ if uploaded_file:
         '6': semesters_data['6']['Lecture'].sum() + semesters_data['6']['Lab'].sum() * 2
     }
     
-        if st.button("Generate Timetables"):
+      if st.button("Generate Timetables"):
         timetables = generate_all_timetables(semesters_data)
         for sem, name in [('2', '2nd Semester'), ('4', '4th Semester'), ('6', '6th Semester')]:
             st.write(f"### {name} Timetable")
