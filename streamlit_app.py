@@ -6,8 +6,8 @@ from collections import defaultdict
 # Constants
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 TIME_SLOTS = ["10:45-11:45", "11:45-12:45", "12:45-1:30", 
-             "1:30-2:30", "2:30-3:30", "3:30-3:45", 
-             "3:45-4:45", "4:45-5:45"]
+              "1:30-2:30", "2:30-3:30", "3:30-3:45", 
+              "3:45-4:45", "4:45-5:45"]
 MAX_DAILY_CLASSES = 4  # Maximum classes per day per semester
 
 @st.cache_data
@@ -30,7 +30,6 @@ def load_data(uploaded_file):
     return semesters
 
 def generate_all_timetables(semesters_data):
-    # Store timetables and faculty slots
     timetables = {sem: pd.DataFrame("", index=TIME_SLOTS, columns=DAYS) for sem in semesters_data}
     faculty_schedule = defaultdict(set)
     sem_day_class_count = {sem: {day: 0 for day in DAYS} for sem in semesters_data}
@@ -41,7 +40,7 @@ def generate_all_timetables(semesters_data):
             timetables[sem].at["12:45-1:30", day] = "BREAK"
             timetables[sem].at["3:30-3:45", day] = "BREAK"
 
-    # Shuffle to reduce bias
+    # Shuffle subjects to reduce bias
     for sem in semesters_data:
         semesters_data[sem] = semesters_data[sem].sample(frac=1).reset_index(drop=True)
 
@@ -54,15 +53,14 @@ def generate_all_timetables(semesters_data):
             if not professors:
                 continue
 
-            # Assign lectures linearly
+            # Assign lectures
             for _ in range(lectures):
                 assigned = False
                 for day in sorted(DAYS, key=lambda d: sem_day_class_count[sem][d]):
                     for time_slot in TIME_SLOTS:
-                        if ("BREAK" in time_slot or 
-                            timetables[sem].at[time_slot, day] != ""):
+                        if ("BREAK" in time_slot or timetables[sem].at[time_slot, day] != ""):
                             continue
-                        # Check if previous slots in day are filled
+                        # Avoid placing lectures after gaps
                         prev_slots = TIME_SLOTS[:TIME_SLOTS.index(time_slot)]
                         if any(timetables[sem].at[ts, day] == "" for ts in prev_slots if "BREAK" not in ts):
                             continue
@@ -118,44 +116,28 @@ uploaded_file = st.file_uploader("Upload Excel file with subject data", type=["x
 if uploaded_file:
     semesters_data = load_data(uploaded_file)
     
-    # Verify equal distribution
+    # Display total class count for verification
     total_classes = {
         '2': semesters_data['2']['Lecture'].sum() + semesters_data['2']['Lab'].sum() * 2,
         '4': semesters_data['4']['Lecture'].sum() + semesters_data['4']['Lab'].sum() * 2,
         '6': semesters_data['6']['Lecture'].sum() + semesters_data['6']['Lab'].sum() * 2
     }
+    st.write("Total Classes Per Semester:", total_classes)
     
     if st.button("Generate Timetables"):
-    timetables = generate_all_timetables(semesters_data)
-    
-    for sem, name in [('2', '2nd Semester'), ('4', '4th Semester'), ('6', '6th Semester')]:
-        st.write(f"### {name} Timetable")
+        timetables = generate_all_timetables(semesters_data)
 
-        display_df = timetables[sem].copy()
+        for sem, name in [('2', '2nd Semester'), ('4', '4th Semester'), ('6', '6th Semester')]:
+            st.write(f"### {name} Timetable")
 
-        st.dataframe(
-            display_df.style.set_properties(**{
-                'white-space': 'pre-wrap',
-                'text-align': 'center',
-                'min-width': '120px',
-                'max-width': '150px'
-            }),
-            height=600
-        )
+            display_df = timetables[sem].copy()
 
-
-            
-            # Format display
-            display_df = pd.DataFrame(index=TIME_SLOTS, columns=DAYS)
-            for day in DAYS:
-                for time_slot in TIME_SLOTS:
-                    display_df.at[time_slot, day] = timetable.at[time_slot, day]
-            
             st.dataframe(
                 display_df.style.set_properties(**{
                     'white-space': 'pre-wrap',
                     'text-align': 'center',
-                    'min-width': '150px'
+                    'min-width': '120px',
+                    'max-width': '150px'
                 }),
                 height=600
             )
